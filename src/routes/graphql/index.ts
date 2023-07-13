@@ -28,7 +28,10 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     `,
     resolvers: {
       Query: {
-        helloWorld: (parent, args, context: any, info) => "hello sir!",
+        helloWorld: (parent, args, context: any, info) => {
+          console.log(context);
+          return "hello sir!";
+        },
       },
     },
     plugins: [fastifyApolloDrainPlugin(fastify)],
