@@ -35,6 +35,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
       },
     },
     plugins: [fastifyApolloDrainPlugin(fastify)],
+    introspection: true,
   });
 
   await apollo.start();
