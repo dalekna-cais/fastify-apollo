@@ -1,13 +1,26 @@
 import type { FastifyPluginAsync } from "fastify";
-import type { BaseContext } from "@apollo/server";
 import { ApolloServer } from "@apollo/server";
 import {
+  type ApolloFastifyContextFunction,
   fastifyApolloDrainPlugin,
   fastifyApolloHandler,
 } from "@as-integrations/fastify";
 
+type ApolloContextProps = {
+  authorization?: string;
+};
+
+const apolloContext: ApolloFastifyContextFunction<ApolloContextProps> = async (
+  request,
+  reply
+) => {
+  return {
+    authorization: request.headers.authorization,
+  };
+};
+
 const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
-  const apollo = new ApolloServer<BaseContext>({
+  const apollo = new ApolloServer<ApolloContextProps>({
     typeDefs: `
     type Query {
       helloWorld: String!
@@ -26,7 +39,9 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   fastify.route({
     url: "/",
     method: ["POST", "OPTIONS"],
-    handler: fastifyApolloHandler(apollo),
+    handler: fastifyApolloHandler(apollo, {
+      context: apolloContext,
+    }),
   });
 };
 
