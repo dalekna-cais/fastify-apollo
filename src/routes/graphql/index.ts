@@ -1,39 +1,37 @@
 import type { FastifyPluginAsync } from "fastify";
+import type { KeyValueCache } from "@apollo/utils.keyvaluecache";
 import { ApolloServer } from "@apollo/server";
 import {
   type ApolloFastifyContextFunction,
   fastifyApolloDrainPlugin,
   fastifyApolloHandler,
 } from "@as-integrations/fastify";
+import { InvestorProfileAPI } from "./data-sources/investor-profile";
+import { resolvers, typeDefs } from "./models";
 
-type ApolloContextProps = {
-  authorization?: string;
+export type ApolloContextProps = {
+  dataSources: {
+    ipAPI: InvestorProfileAPI;
+  };
 };
 
-const apolloContext: ApolloFastifyContextFunction<ApolloContextProps> = async (
-  request,
-  reply
-) => {
-  return {
-    authorization: request.headers.authorization,
+const apolloContext = (
+  cache: KeyValueCache
+): ApolloFastifyContextFunction<ApolloContextProps> => {
+  return async (request, reply) => {
+    const token = request.headers.authorization;
+    return {
+      dataSources: {
+        ipAPI: new InvestorProfileAPI({ token: token ?? "", cache }),
+      },
+    };
   };
 };
 
 const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
   const apollo = new ApolloServer<ApolloContextProps>({
-    typeDefs: `
-    type Query {
-      helloWorld: String!
-    }
-    `,
-    resolvers: {
-      Query: {
-        helloWorld: (parent, args, context: any, info) => {
-          console.log(context);
-          return "hello sir!";
-        },
-      },
-    },
+    typeDefs,
+    resolvers,
     plugins: [fastifyApolloDrainPlugin(fastify)],
     introspection: true,
   });
@@ -44,7 +42,7 @@ const route: FastifyPluginAsync = async (fastify, opts): Promise<void> => {
     url: "/",
     method: ["POST", "OPTIONS"],
     handler: fastifyApolloHandler(apollo, {
-      context: apolloContext,
+      context: apolloContext(apollo.cache),
     }),
   });
 };
